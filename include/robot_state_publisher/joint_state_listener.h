@@ -41,6 +41,7 @@
 #include <kdl/tree.hpp>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+#include <std_msgs/Empty.h>
 
 #include "robot_state_publisher/robot_state_publisher.h"
 
@@ -79,6 +80,18 @@ protected:
   bool ignore_timestamp_;
 
 };
+
+class JointStateWrapper {
+public:
+	JointStateWrapper();
+	~JointStateWrapper();
+private:
+	void stop();
+ 	virtual void callbackReset(const std_msgs::Empty& msg);
+	JointStateListener* jsl;
+	Subscriber joint_state_reset_;
+};
+
 }
 
 #endif

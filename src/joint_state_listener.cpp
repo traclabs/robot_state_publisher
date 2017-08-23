@@ -142,6 +142,55 @@ void JointStateListener::callbackJointState(const JointStateConstPtr& state)
   }
 }
 
+JointStateWrapper::JointStateWrapper()
+	: jsl(NULL)
+{
+  ros::NodeHandle n;
+  joint_state_reset_ = n.subscribe("robot_publisher_reset", 1, &JointStateWrapper::callbackReset, this);
+  std_msgs::Empty msg;
+  callbackReset(msg);
+}
+
+JointStateWrapper::~JointStateWrapper()
+{
+	stop();
+}
+
+void JointStateWrapper::stop() {
+	if (jsl)
+		delete jsl;
+}
+
+void JointStateWrapper::callbackReset(const std_msgs::Empty &msg) {
+  ROS_INFO("RobotStatePublisher: resetting...");
+  stop();
+  // gets the location of the robot description on the parameter server
+  urdf::Model model;
+  if (!model.initParam("robot_description")) {
+    ROS_ERROR("Failed to get robot model");
+	 ROS_ERROR("Load urdf on param server and send reset message");
+    return;
+  }
+
+  KDL::Tree tree;
+  if (!kdl_parser::treeFromUrdfModel(model, tree)) {
+    ROS_ERROR("Failed to extract kdl tree from xml robot description");
+	 ROS_ERROR("Load proper urdf on param server and send reset message");
+    return;
+  }
+
+  MimicMap mimic;
+
+  for(std::map< std::string, urdf::JointSharedPtr >::iterator i = model.joints_.begin(); i != model.joints_.end(); i++) {
+    if(i->second->mimic) {
+      mimic.insert(make_pair(i->first, i->second->mimic));
+    }
+  }
+
+  //JointStateListener state_publisher(tree, mimic, model);
+  jsl = new JointStateListener(tree, mimic, model);
+}
+
 // ----------------------------------
 // ----- MAIN -----------------------
 // ----------------------------------
@@ -161,27 +210,7 @@ int main(int argc, char** argv)
     ROS_WARN("The 'state_publisher' executable is deprecated. Please use 'robot_state_publisher' instead");
   }
   ///////////////////////////////////////// end deprecation warning
-
-  // gets the location of the robot description on the parameter server
-  urdf::Model model;
-  if (!model.initParam("robot_description"))
-    return -1;
-
-  KDL::Tree tree;
-  if (!kdl_parser::treeFromUrdfModel(model, tree)) {
-    ROS_ERROR("Failed to extract kdl tree from xml robot description");
-    return -1;
-  }
-
-  MimicMap mimic;
-
-  for(std::map< std::string, urdf::JointSharedPtr >::iterator i = model.joints_.begin(); i != model.joints_.end(); i++) {
-    if(i->second->mimic) {
-      mimic.insert(make_pair(i->first, i->second->mimic));
-    }
-  }
-
-  JointStateListener state_publisher(tree, mimic, model);
+  JointStateWrapper jsw;
   ros::spin();
 
   return 0;
