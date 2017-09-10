@@ -42,6 +42,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Empty.h>
+#include <std_srvs/Empty.h>
 
 #include "robot_state_publisher/robot_state_publisher.h"
 
@@ -88,8 +89,12 @@ public:
 private:
 	void stop();
  	virtual void callbackReset(const std_msgs::Empty& msg);
+ 	virtual bool serviceReset(std_srvs::Empty::Request &req,
+	                          std_srvs::Empty::Response &rsp);
+	void doReset();
 	JointStateListener* jsl;
 	Subscriber joint_state_reset_;
+	ServiceServer joint_state_reset_srv_;
 };
 
 }

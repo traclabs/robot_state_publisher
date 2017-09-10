@@ -147,6 +147,7 @@ JointStateWrapper::JointStateWrapper()
 {
   ros::NodeHandle n;
   joint_state_reset_ = n.subscribe("robot_publisher_reset", 1, &JointStateWrapper::callbackReset, this);
+  joint_state_reset_srv_ = n.advertiseService("robot_publisher_reset_service", &JointStateWrapper::serviceReset, this);
   std_msgs::Empty msg;
   callbackReset(msg);
 }
@@ -162,7 +163,18 @@ void JointStateWrapper::stop() {
 }
 
 void JointStateWrapper::callbackReset(const std_msgs::Empty &msg) {
-  ROS_INFO("RobotStatePublisher: resetting...");
+  ROS_INFO("RobotStatePublisher: resetting via callback...");
+  doReset();
+}
+
+bool JointStateWrapper::serviceReset(std_srvs::Empty::Request &req,
+                                     std_srvs::Empty::Response &rsp) {
+  ROS_INFO("RobotStatePublisher: resetting via service...");
+  doReset();
+  return true;
+}
+
+void JointStateWrapper::doReset() {
   stop();
   // gets the location of the robot description on the parameter server
   urdf::Model model;
